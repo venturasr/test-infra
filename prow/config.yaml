@@ -369,8 +369,8 @@ kyma_ref: &kyma_ref
   org: sayanh
   repo: kyma
   path_alias: github.com/kyma-project/kyma ### May be ok as this is an alias
-kyma_ref_santiago: &kyma_ref_santiago
-  org: sayanh
+kyma_ref_k15r: &kyma_ref_k15r
+  org: k15r
   repo: kyma
   path_alias: github.com/kyma-project/kyma ### May be ok as this is an alias
 
@@ -389,8 +389,8 @@ periodics:
         repo: test-infra
         base_ref: fix-end2end-cluster-creation
         path_alias: github.com/kyma-project/test-infra
-      - <<: *kyma_ref_santiago
-        base_ref: image-e2etest
+      - <<: *kyma_ref_k15r
+        base_ref: e2e-modularization
     spec:
       containers:
         - image: eu.gcr.io/kyma-project/test-infra/kyma-cluster-infra:v20190129-c951cf2
@@ -402,10 +402,8 @@ periodics:
             - name: INPUT_CLUSTER_NAME
               value: "e2etest"
             - name: REPO_OWNER_GIT
-              value: "sayanh"
+              value: "k15r"
             - name: REPO_NAME_GIT
-              value: "image-e2etest"
-            - name: REPO_NAME
               value: "kyma"
           args:
             - "-c"

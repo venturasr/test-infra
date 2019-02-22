@@ -2,6 +2,7 @@
 
 set -o errexit
 set -o pipefail  # Fail a pipe if any sub-command fails.
+set -xv
 
 discoverUnsetVar=false
 
