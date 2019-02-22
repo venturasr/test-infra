@@ -144,9 +144,9 @@ shout "Cleanup"
 date
 cleanup
 
-shout "Build Kyma-Installer Docker image"
-date
-"${TEST_INFRA_CLUSTER_INTEGRATION_SCRIPTS}/create-image.sh"
+#shout "Build Kyma-Installer Docker image"
+#date
+#"${TEST_INFRA_CLUSTER_INTEGRATION_SCRIPTS}/create-image.sh"
 
 shout "Create new cluster"
 date

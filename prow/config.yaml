@@ -376,7 +376,7 @@ kyma_ref_santiago: &kyma_ref_santiago
 
 periodics:
   - name: kyma-gke-end-to-end-test-backup-restore
-    cron: "24 9 * * 1-5" #cron: "24 9 * * 1-5" # "At 05:00 on every day-of-week from Monday through Friday."
+    cron: "*/2 * * * *" #cron: "24 9 * * 1-5" # "At 05:00 on every day-of-week from Monday through Friday."
     labels:
       preset-build-master: "true"
       # preset-weekly-github-integration: "true"
