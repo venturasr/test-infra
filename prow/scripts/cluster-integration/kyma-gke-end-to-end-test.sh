@@ -209,7 +209,7 @@ TLS_KEY=$(echo "${CERT_KEY}" | tail -1)
 shout "Apply Kyma config"
 date
 
-kubectl apply -f "${INSTALLER_YAML}"
+cat "${INSTALLER_YAML}" | sed -e 's;image: eu.gcr.io/kyma-project/.*/installer:.*$;'"image: ${KYMA_INSTALLER_IMAGE};" | kubectl apply -f-
 
 "${TEST_INFRA_CLUSTER_INTEGRATION_SCRIPTS}/generate-cluster-backup-config.sh"
 
