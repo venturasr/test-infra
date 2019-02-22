@@ -121,17 +121,6 @@ function cleanup() {
 
 }
 
-# As is a periodic job executed on master, operate on triggering commit id
-shout "Getting installer image"
-readonly COMMIT_ID=$(cd "$KYMA_SOURCES_DIR" && git rev-parse --short HEAD)
-shout "${DOCKER_PUSH_REPOSITORY}"
-shout "${DOCKER_PUSH_DIRECTORY}"
-shout "${STANDARIZED_NAME}"
-shout "${REPO_OWNER}"
-shout "${REPO_NAME}"
-KYMA_INSTALLER_IMAGE="${DOCKER_PUSH_REPOSITORY}${DOCKER_PUSH_DIRECTORY}/${STANDARIZED_NAME}/${REPO_OWNER}/${REPO_NAME}:${CURRENT_TIMESTAMP}"
-export KYMA_INSTALLER_IMAGE
-
 #Local variables
 KYMA_SCRIPTS_DIR="${KYMA_SOURCES_DIR}/installation/scripts"
 export KYMA_RESOURCES_DIR="${KYMA_SOURCES_DIR}/installation/resources"
@@ -154,9 +143,17 @@ shout "Cleanup"
 date
 cleanup
 
+shout "${DOCKER_PUSH_REPOSITORY}"
+shout "${DOCKER_PUSH_DIRECTORY}"
+shout "${STANDARIZED_NAME}"
+shout "${REPO_OWNER}"
+shout "${REPO_NAME}"
+KYMA_INSTALLER_IMAGE="${DOCKER_PUSH_REPOSITORY}${DOCKER_PUSH_DIRECTORY}/${STANDARIZED_NAME}/${REPO_OWNER}/${REPO_NAME}:${CURRENT_TIMESTAMP}"
+export KYMA_INSTALLER_IMAGE
 shout "Build Kyma-Installer Docker image"
 date
-"${TEST_INFRA_CLUSTER_INTEGRATION_SCRIPTS}/create-image.sh"
+KYMA_INSTALLER_IMAGE="${KYMA_INSTALLER_IMAGE}" "${TEST_INFRA_CLUSTER_INTEGRATION_SCRIPTS}"/create-image.sh
+
 
 shout "Create new cluster"
 date
