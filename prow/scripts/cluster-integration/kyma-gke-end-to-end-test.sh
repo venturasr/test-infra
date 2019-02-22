@@ -30,7 +30,7 @@ export BACKUP_CREDENTIALS="${KYMA_BACKUP_CREDENTIALS}"
 export BACKUP_RESTORE_BUCKET="${KYMA_BACKUP_RESTORE_BUCKET}"
 
 readonly REPO_OWNER=$(echo "${REPO_OWNER_GIT}" | tr "[:upper:]" "[:lower:]")
-readonly REPO_NAME_GIT=$(echo "${REPO_NAME_GIT}" | tr "[:upper:]" "[:lower:]")
+readonly REPO_NAME=$(echo "${REPO_NAME_GIT}" | tr "[:upper:]" "[:lower:]")
 readonly CURRENT_TIMESTAMP=$(date +%Y%m%d)
 
 readonly STANDARIZED_NAME=$(echo "${INPUT_CLUSTER_NAME}" | tr "[:upper:]" "[:lower:]")
@@ -46,6 +46,9 @@ removeCluster() {
     set +e
 
     EXIT_STATUS=$?
+
+    shout "Fetching OLD_TIMESTAMP from cluster to be deleted"
+	readonly OLD_TIMESTAMP=$(gcloud container clusters describe "${CLUSTER_NAME}" --zone="${GCLOUD_COMPUTE_ZONE}" --project="${GCLOUD_PROJECT_NAME}" --format=json | jq --raw-output '.resourceLabels."created-at"')
 
     shout "Deprovision cluster: \"${CLUSTER_NAME}\""
     date
@@ -93,7 +96,7 @@ removeCluster() {
 
     shout "Delete temporary Kyma-Installer Docker image"
     date
-    "${TEST_INFRA_CLUSTER_INTEGRATION_SCRIPTS}"/delete-image.sh
+    KYMA_INSTALLER_IMAGE="${DOCKER_PUSH_REPOSITORY}${DOCKER_PUSH_DIRECTORY}/${STANDARIZED_NAME}/${REPO_OWNER}/${REPO_NAME}:${OLD_TIMESTAMP}" "${TEST_INFRA_CLUSTER_INTEGRATION_SCRIPTS}"/delete-image.sh
     TMP_STATUS=$?
     if [[ ${TMP_STATUS} -ne 0 ]]; then EXIT_STATUS=${TMP_STATUS}; fi
 
@@ -119,7 +122,7 @@ function cleanup() {
 
 # As is a periodic job executed on master, operate on triggering commit id
 readonly COMMIT_ID=$(cd "$KYMA_SOURCES_DIR" && git rev-parse --short HEAD)
-KYMA_INSTALLER_IMAGE="${DOCKER_PUSH_REPOSITORY}${DOCKER_PUSH_DIRECTORY}/${STANDARIZED_NAME}/${REPO_OWNER}/${REPO_NAME}:COMMIT-${COMMIT_ID}"
+KYMA_INSTALLER_IMAGE="${DOCKER_PUSH_REPOSITORY}${DOCKER_PUSH_DIRECTORY}/${STANDARIZED_NAME}/${REPO_OWNER}/${REPO_NAME}:${CURRENT_TIMESTAMP}"
 export KYMA_INSTALLER_IMAGE
 
 #Local variables
@@ -144,9 +147,9 @@ shout "Cleanup"
 date
 cleanup
 
-#shout "Build Kyma-Installer Docker image"
-#date
-#"${TEST_INFRA_CLUSTER_INTEGRATION_SCRIPTS}/create-image.sh"
+shout "Build Kyma-Installer Docker image"
+date
+"${TEST_INFRA_CLUSTER_INTEGRATION_SCRIPTS}/create-image.sh"
 
 shout "Create new cluster"
 date
