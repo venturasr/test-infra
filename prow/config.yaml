@@ -7,10 +7,23 @@ presets:
       - name: CLOUDSDK_COMPUTE_REGION
         value: "europe-west3"
   - labels:
+      preset-kyma-backup-restore-bucket: "true"
+    env:
+      - name: KYMA_BACKUP_RESTORE_BUCKET
+        value: gs://kyma-backup-restore
+  - labels:
+      preset-kyma-backup-credentials: "true"
+    env:
+      - name: KYMA_BACKUP_CREDENTIALS
+        valueFrom:
+          secretKeyRef:
+            name: atx-sa-kyma-backup-credentials
+            key: token
+  - labels:
       preset-gc-project-env: "true"
     env:
       - name: CLOUDSDK_CORE_PROJECT
-        value: "sap-kyma-prow"
+        value: "kyma-project"
   - labels:
       preset-sa-vm-kyma-integration: "true" # Service account with "Compute Admin" and "Compute OS Admin Login" roles
     env:
@@ -30,13 +43,13 @@ presets:
       - name: GOOGLE_APPLICATION_CREDENTIALS
         value: /etc/credentials/sa-gke-kyma-integration/service-account.json
       - name: CLOUDSDK_DNS_ZONE_NAME
-        value: "build-kyma" #GCloud DNS Zone Name (NOT it's DNS name!)
+        value: "kyma-online" #GCloud DNS Zone Name (NOT it's DNS name!)
       - name: KYMA_PROJECT_DIR
         value: "/home/prow/go/src/github.com/kyma-project"
     volumes:
       - name: sa-gke-kyma-integration
         secret:
-          secretName: sa-gke-kyma-integration
+          secretName: atx-sa-gke-kyma-integration
     volumeMounts:
       - name: sa-gke-kyma-integration
         mountPath: /etc/credentials/sa-gke-kyma-integration
@@ -57,15 +70,15 @@ presets:
   - labels:
       preset-sa-kyma-artifacts: "true"
     env:
-    - name: GOOGLE_APPLICATION_CREDENTIALS
-      value: /etc/credentials/sa-kyma-artifacts/service-account.json
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/credentials/sa-kyma-artifacts/service-account.json
     volumes:
-    - name: sa-kyma-artifacts
-      secret:
-        secretName: sa-kyma-artifacts
+      - name: sa-kyma-artifacts
+        secret:
+          secretName: sa-kyma-artifacts
     volumeMounts:
-    - name: sa-kyma-artifacts
-      mountPath: /etc/credentials/sa-kyma-artifacts
+      - name: sa-kyma-artifacts
+        mountPath: /etc/credentials/sa-kyma-artifacts
   - labels:
       preset-dind-enabled: "true"
     env:
@@ -86,7 +99,7 @@ presets:
       preset-docker-push-repository-gke-integration: "true" # Needed for kyma installer image
     env:
       - name: DOCKER_PUSH_REPOSITORY
-        value: "eu.gcr.io/sap-kyma-prow"
+        value: "eu.gcr.io/kyma-project/temp"
   - labels:
       preset-docker-push-repository-test-infra: "true"
     env:
@@ -160,31 +173,28 @@ presets:
   - labels:
       preset-sap-slack-bot-token: "true"
     env:
-    - name: SAP_SLACK_BOT_TOKEN
-      valueFrom:
-        secretKeyRef:
-          name: sap-slack-bot-token
-          key: token
+      - name: SAP_SLACK_BOT_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: sap-slack-bot-token
+            key: token
   - labels:
       preset-kyma-artifacts-bucket: "true"
     env:
       - name: KYMA_ARTIFACTS_BUCKET
-        value: gs://kyma-prow-artifacts
-  - labels:
-      preset-kyma-backup-restore-bucket: "true"
-    env:
-      - name: KYMA_BACKUP_RESTORE_BUCKET
-        value: gs://kyma-backup-restore
-  - labels:
-      preset-kyma-backup-credentials: "true"
-    env:
-    - name: KYMA_BACKUP_CREDENTIALS
-      valueFrom:
-        secretKeyRef:
-          name: kyma-backup-credentials
-          key: token
+        value: gs://atx-prow-logs
   - labels:
       preset-stability-checker-slack-notifications: "true"
+    env:
+      - name: SLACK_CLIENT_WEBHOOK_URL
+        value: https://sap-cx.slack.com/services/hooks/jenkins-ci
+      - name: SLACK_CLIENT_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: slack-nightly-token
+            key: token
+  - labels:
+      preset-load-test-slack-notifications: "true"
     env:
       - name: SLACK_CLIENT_WEBHOOK_URL
         value: https://sap-cx.slack.com/services/hooks/jenkins-ci
@@ -220,98 +230,98 @@ presets:
             name: weekly-github-integration-app-client-secret
             key: client-secret
   - labels:
-      preset-kyma-development-artifacts-bucket: "true"
+      preset-kyma-ondemands: "true"
     env:
-      - name: KYMA_DEVELOPMENT_ARTIFACTS_BUCKET
-        value: "gs://kyma-development-artifacts"
+      - name: KYMA_ONDEMAND_ARTIFACTS_BUCKET
+        value: "gs://kyma-ondemand-artifacts"
 
-branch-protection:
-  enforce_admins: false
-  required_pull_request_reviews:
-    dismiss_stale_reviews: false
-    require_code_owner_reviews: true
-    required_approving_review_count: 1
-  # all jobs that have ContextRequired() set to true are also treated as required_status_checks, so there is no point to mention it here.
-  required_status_checks:
-    contexts:
-      - license/cla
-  orgs:
-    kyma-project:
-      repos:
-        test-infra:
-          branches:
-            master:
-              protect: true
-        kyma:
-          branches:
-            master:
-              protect: true
-            release-0.6:
-              protect: true
-              required_status_checks:
-                contexts:
-                  - pre-rel06-kyma-integration
-                  - pre-rel06-kyma-gke-integration
-                  - pre-rel06-kyma-artifacts
-                  - pre-rel06-kyma-installer
-            release-0.7: # Already defined to ensure that check is defined for the new upgrade job
-              protect: true
-              required_status_checks:
-                contexts:
-                - pre-rel07-kyma-integration
-                - pre-rel07-kyma-gke-integration
-                - pre-rel07-kyma-artifacts
-                - pre-rel07-kyma-installer
-        website:
-          branches:
-            master:
-              protect: true
-        community:
-          branches:
-            master:
-              protect: true
-        examples:
-          branches:
-            master:
-              protect: true
-        console:
-          branches:
-            master:
-              protect: true
-        bundles:
-          branches:
-            master:
-              protect: true
-        luigi:
-          required_pull_request_reviews:
-            dismiss_stale_reviews: false
-            require_code_owner_reviews: true
-            required_approving_review_count: 2
-          branches:
-            master:
-              protect: true
-    kyma-incubator:
-      repos:
-        varkes:
-          branches:
-            master:
-              protect: true
-        kymactl:
-          branches:
-            master:
-              protect: true
-        vstudio-extension:
-          branches:
-            master:
-              protect: true
-        service-catalog-tester:
-          branches:
-            master:
-              protect: true
+# branch-protection:
+#   enforce_admins: false
+#   required_pull_request_reviews:
+#     dismiss_stale_reviews: false
+#     require_code_owner_reviews: true
+#     required_approving_review_count: 1
+#   # all jobs that have ContextRequired() set to true are also treated as required_status_checks, so there is no point to mention it here.
+#   required_status_checks:
+#     contexts:
+#       - license/cla
+#   orgs:
+#     kyma-project:
+#       repos:
+#         test-infra:
+#           branches:
+#             master:
+#               protect: true
+#         kyma:
+#           branches:
+#             master:
+#               protect: true
+#             release-0.6:
+#               protect: true
+#               required_status_checks:
+#                 contexts:
+#                   - pre-rel06-kyma-integration
+#                   - pre-rel06-kyma-gke-integration
+#                   - pre-rel06-kyma-artifacts
+#                   - pre-rel06-kyma-installer
+#             release-0.7: # Already defined to ensure that check is defined for the new upgrade job
+#               protect: true
+#               required_status_checks:
+#                 contexts:
+#                 - pre-rel07-kyma-integration
+#                 - pre-rel07-kyma-gke-integration
+#                 - pre-rel07-kyma-artifacts
+#                 - pre-rel07-kyma-installer
+#         website:
+#           branches:
+#             master:
+#               protect: true
+#         community:
+#           branches:
+#             master:
+#               protect: true
+#         examples:
+#           branches:
+#             master:
+#               protect: true
+#         console:
+#           branches:
+#             master:
+#               protect: true
+#         bundles:
+#           branches:
+#             master:
+#               protect: true
+#         luigi:
+#           required_pull_request_reviews:
+#             dismiss_stale_reviews: false
+#             require_code_owner_reviews: true
+#             required_approving_review_count: 2
+#           branches:
+#             master:
+#               protect: true
+#     kyma-incubator:
+#       repos:
+#         varkes:
+#           branches:
+#             master:
+#               protect: true
+#         kymactl:
+#           branches:
+#             master:
+#               protect: true
+#         vstudio-extension:
+#           branches:
+#             master:
+#               protect: true
+#         service-catalog-tester:
+#           branches:
+#             master:
+#               protect: true
 
 plank:
-  job_url_template: 'https://status.build.kyma-project.io/view/gcs/kyma-prow-logs/{{if eq .Spec.Type "presubmit"}}pr-logs/pull{{else if eq .Spec.Type "batch"}}pr-logs/pull{{else}}logs{{end}}{{if .Spec.Refs}}{{if ne .Spec.Refs.Org ""}}/{{.Spec.Refs.Org}}_{{.Spec.Refs.Repo}}{{end}}{{end}}{{if eq .Spec.Type "presubmit"}}/{{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}{{else if eq .Spec.Type "batch"}}/batch{{end}}/{{.Spec.Job}}/{{.Status.BuildID}}/'
-  job_url_prefix: 'https://status.build.kyma-project.io/view/gcs/'
+  job_url_template: 'https://35.198.111.181/view/gcs/atx-prow-logs/{{if eq .Spec.Type "presubmit"}}pr-logs/pull{{else if eq .Spec.Type "batch"}}pr-logs/pull{{else}}logs{{end}}{{if .Spec.Refs}}{{if ne .Spec.Refs.Org ""}}/{{.Spec.Refs.Org}}_{{.Spec.Refs.Repo}}{{end}}{{end}}{{if eq .Spec.Type "presubmit"}}/{{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}{{else if eq .Spec.Type "batch"}}/batch{{end}}/{{.Spec.Job}}/{{.Status.BuildID}}/'
+  job_url_prefix: "https://35.198.111.181/view/gcs/"
   allow_cancellations: true # AllowCancellations enables aborting presubmit jobs for commits that have been superseded by newer commits in Github pull requests.
   max_concurrency: 30 # Limit of concurrent ProwJobs. Need to be adjusted depending of the cluster size.
   pod_pending_timeout: 60m
@@ -324,7 +334,7 @@ plank:
       entrypoint: "gcr.io/k8s-prow/entrypoint:v20181019-08e9d55c9"
       sidecar: "gcr.io/k8s-prow/sidecar:v20181019-08e9d55c9"
     gcs_configuration:
-      bucket: kyma-prow-logs
+      bucket: atx-prow-logs
       path_strategy: "explicit"
     gcs_credentials_secret: "sa-gcs-plank" # Service account with "Object Admin" role
 
@@ -346,3 +356,104 @@ sinker:
 push_gateway:
   endpoint: pushgateway
   interval: 10s
+
+gke_job_labels_template: &gke_job_labels_template
+  preset-sa-gke-kyma-integration: "true"
+  preset-gc-compute-envs: "true"
+  preset-gc-project-env: "true"
+  preset-docker-push-repository-gke-integration: "true"
+  preset-dind-enabled: "true"
+  preset-kyma-artifacts-bucket: "true"
+
+kyma_ref: &kyma_ref
+  org: sayanh
+  repo: kyma
+  path_alias: github.com/kyma-project/kyma ### May be ok as this is an alias
+kyma_ref_santiago: &kyma_ref_santiago
+  org: sayanh
+  repo: kyma
+  path_alias: github.com/kyma-project/kyma ### May be ok as this is an alias
+
+periodics:
+  - name: kyma-gke-end-to-end-test-backup-restore
+    cron: "03 18 * * 1-5" # "At 05:00 on every day-of-week from Monday through Friday."
+    labels:
+      preset-build-master: "true"
+      # preset-weekly-github-integration: "true"
+      preset-kyma-backup-restore-bucket: "true"
+      preset-kyma-backup-credentials: "true"
+      <<: *gke_job_labels_template
+    decorate: true
+    extra_refs:
+      - org: venturasr
+        repo: test-infra
+        base_ref: fix-end2end-cluster-creation
+        path_alias: github.com/kyma-project/test-infra
+      - <<: *kyma_ref_santiago
+        base_ref: image-e2etest
+    spec:
+      containers:
+        - image: eu.gcr.io/kyma-project/test-infra/kyma-cluster-infra:v20190129-c951cf2
+          securityContext:
+            privileged: true
+          command:
+            - "bash"
+          env:
+            - name: INPUT_CLUSTER_NAME
+              value: "e2etest"
+            - name: REPO_OWNER_GIT
+              value: "sayanh"
+            - name: REPO_NAME_GIT
+              value: "image-e2etest"
+            - name: REPO_NAME
+              value: "kyma"
+          args:
+            - "-c"
+            - "${KYMA_PROJECT_DIR}/test-infra/prow/scripts/cluster-integration/kyma-gke-end-to-end-test.sh"
+          resources:
+            requests:
+              memory: 200Mi
+              cpu: 80m
+  - name: kyma-load-tests-weekly
+    cron: "05 18 * * 4" # "At 2:00 on every Monday."
+    labels:
+      preset-build-master: "true"
+      <<: *gke_job_labels_template
+    decorate: true
+    extra_refs:
+      - org: sayanh
+        repo: test-infra
+        base_ref: add-load-test-job
+        path_alias: github.com/kyma-project/test-infra
+      - <<: *kyma_ref
+        base_ref: load-test-migration
+    spec:
+      containers:
+        - image: eu.gcr.io/kyma-project/test-infra/kyma-cluster-infra:v20190129-c951cf2
+          securityContext:
+            privileged: true
+          command:
+            - "bash"
+          env:
+            - name: INPUT_CLUSTER_NAME
+              value: "load-test"
+            - name: SLACK_CLIENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: sap-slack-bot-token
+                  key: token
+            - name: LOAD_TEST_SLACK_CLIENT_CHANNEL_ID
+              value: "#c4-xf-load-test"
+            - name: LT_TIMEOUT # Load test timeout in minutes
+              value: "30"
+            - name: LT_REQS_PER_ROUTINE # Number of requests to function per go routine
+              value: "1600"
+            - name: DNS_NAME
+              value: "kyma.online."
+          args:
+            - "-c"
+            - "${KYMA_PROJECT_DIR}/test-infra/prow/scripts/cluster-integration/kyma-gke-load-test.sh"
+          resources:
+            requests:
+              memory: 200Mi
+              cpu: 80m
